@@ -8,4 +8,5 @@
 
 ### After the project is downloaded, you need to unzip it, open it and double-click on the file. index.html
 <img width="97" alt="Снимок экрана 2025-02-06 в 21 59 38" src="https://github.com/user-attachments/assets/90660331-7e5b-43ee-988e-9828641a9981" />
+
 ### After that, the website will open.
