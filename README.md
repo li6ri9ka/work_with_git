@@ -5,7 +5,7 @@
 ### This application is designed to [briefly describe the purpose of the application]. It provides [list key features or functionalities, e.g., learning DevOps concepts, managing tasks, etc.]. The app is built with [mention technologies used, e.g., Bootstrap, HTML5, etc.] and offers a user-friendly interface for [target audience, e.g., developers, students, etc.].
 
 # Developer
-### This project was developed by li6ri9ka. You can visit my GitHub profile: [https://github.com/li6ri9ka].
+### This project was developed by li6ri9ka. You can visit my GitHub profile: [GitHub](https://github.com/li6ri9ka).
 
 # Links
    - [Changelog](https://github.com/li6ri9ka/work_with_git/blob/master/changelog.md)
