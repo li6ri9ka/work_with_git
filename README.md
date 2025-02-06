@@ -8,4 +8,5 @@
 ### This project was developed by li6ri9ka. You can visit my GitHub profile: [https://github.com/li6ri9ka].
 
 # Links
-   - Changelog [[]]
+   - [Changelog](https://github.com/li6ri9ka/work_with_git/blob/master/changelog.md)
+   - [Install](https://github.com/li6ri9ka/work_with_git/blob/master/install.md)
