@@ -10,3 +10,5 @@
 # Links
    - [Changelog](https://github.com/li6ri9ka/work_with_git/blob/master/changelog.md)
    - [Install](https://github.com/li6ri9ka/work_with_git/blob/master/install.md)
+
+ ![Снимок экрана 2025-02-07 в 00 45 47](https://github.com/user-attachments/assets/95117174-ee26-4457-9d9d-dfa00ae2e850)
