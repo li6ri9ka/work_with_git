@@ -15,7 +15,7 @@ on:
 
 jobs:
   bump-version:
-    runs-on: ubuntu-lates
+    runs-on: ubuntu-22.04
 
     steps:
       - name: Checkpout 
