@@ -1,0 +1,40 @@
+name: Autoincrement
+
+on:
+    workflow_dispatch:
+      inputs:
+        bumps_type:
+            description: 'Тип обновления версии (major, minor, patch)'
+            required: true
+            default: 'patch'
+            type: choice
+            options:
+              - major
+              - minor
+              - patch
+
+jobs:
+  bump-version:
+    runs-on: ubuntu-lates
+
+    steps:
+      - name: Checkpout 
+        uses: actions/checkout@v3
+        with:
+         token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install python
+        uses: actions/setup-python@v4
+        with:
+         python-version: '3.x'
+
+      - name: increment (${{ github.event.inputs.bumps_type }})
+        run: python bumpVersion.py ${{ github.event.inputs.bump_type }}
+
+      - name: commit new branch
+        run: |
+          git config --global user.name "github-actions"
+          git config --global user.email "github-actions@github.com"
+          git add version.txt
+          git commit -m "Bump version (${{ github.event.inputs.bump_type }}) [skip ci]" || echo "No changes to commit"
+          git push origin master
