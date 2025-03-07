@@ -54,6 +54,6 @@ def check_file(file_path):
     if not os.path.isfile(file_path):
         write_file(file_path, '1.0.0')
 
-file_path = "/Users/li6ri9ka/PycharmProjects/version_up/src/version_controller"
+file_path = "version_controller.txt"
 check_file(file_path)
 version_up(file_path, 'minor')
