@@ -35,6 +35,6 @@ jobs:
         run: |
           git config --global user.name "github-actions"
           git config --global user.email "github-actions@github.com"
-          git add version.txt
+          git add version_controller.txt
           git commit -m "Bump version (${{ github.event.inputs.bump_type }}) [skip ci]" || echo "No changes to commit"
           git push origin master
