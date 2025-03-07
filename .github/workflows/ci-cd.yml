@@ -3,7 +3,7 @@ name: Autoincrement
 on:
     workflow_dispatch:
       inputs:
-        bumps_type:
+        bump_type:
             description: 'Тип обновления версии (major, minor, patch)'
             required: true
             default: 'patch'
@@ -15,10 +15,10 @@ on:
 
 jobs:
   bump-version:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
-      - name: Checkpout 
+      - name: Checkout 
         uses: actions/checkout@v3
         with:
          token: ${{ secrets.GITHUB_TOKEN }}
@@ -30,7 +30,7 @@ jobs:
 
       - name: increment (${{ github.event.inputs.bumps_type }})
         run: python bumpVersion.py ${{ github.event.inputs.bump_type }}
-
+        
       - name: commit new branch
         run: |
           git config --global user.name "github-actions"
