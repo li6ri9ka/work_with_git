@@ -1,4 +1,4 @@
-name: Fake Tests Trio
+name: Test
 on: [pull_request]
 
 jobs:
