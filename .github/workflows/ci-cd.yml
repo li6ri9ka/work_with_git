@@ -1,40 +1,69 @@
-name: Autoincrement
-
+name: Bump Version
 on:
-    workflow_dispatch:
-      inputs:
-        bump_type:
-            description: 'Тип обновления версии (major, minor, patch)'
-            required: true
-            default: 'patch'
-            type: choice
-            options:
-              - major
-              - minor
-              - patch
+  pull_request:
+    types: [closed]
 
 jobs:
-  bump-version:
+  version-bump:
+    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout 
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
         with:
-         token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0  
 
-      - name: Install python
-        uses: actions/setup-python@v4
-        with:
-         python-version: '3.x'
-
-      - name: increment (${{ github.event.inputs.bumps_type }})
-        run: python bumpVersion.py ${{ github.event.inputs.bump_type }}
-        
-      - name: commit new branch
+      
+      - name: Determine version bump type
+        id: version-type
         run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "github-actions@github.com"
-          git add version_controller.txt
-          git commit -m "Bump version (${{ github.event.inputs.bump_type }}) [skip ci]" || echo "No changes to commit"
-          git push origin master
+          if [[ "${{ github.event.pull_request.title }}" == *"feature"* ]]; then
+            echo "type=minor" >> $GITHUB_OUTPUT
+            echo "update_type=minor" >> $GITHUB_ENV
+          elif [[ "${{ github.event.pull_request.title }}" == *"hotfix"* ]]; then
+            echo "type=patch" >> $GITHUB_OUTPUT
+            echo "update_type=patch" >> $GITHUB_ENV
+          else
+            echo "type=skip" >> $GITHUB_OUTPUT
+            echo "Skipping version update - no feature/hotfix in PR title" >&2
+            exit 0
+          fi
+
+     
+      - name: Update version
+        if: steps.version-type.outputs.type != 'skip'
+        id: bump-version
+        run: |
+          # Читаем текущую версию
+          old_version=$(cat version)
+          echo "old_version=$old_version" >> $GITHUB_ENV
+
+          # Генерируем новую версию
+          IFS='.' read -r major minor patch <<< "$old_version"
+          
+          if [ "${{ env.update_type }}" = "minor" ]; then
+            new_version="$major.$((minor + 1)).0"
+          else
+            new_version="$major.$minor.$((patch + 1))"
+          fi
+
+          echo "$new_version" > version
+          echo "new_version=$new_version" >> $GITHUB_ENV
+          echo "version=$new_version" >> $GITHUB_OUTPUT
+
+      
+      - name: Commit version update
+        if: steps.version-type.outputs.type != 'skip'
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add version
+          git commit -m "[${{ env.new_version }}] < [${{ env.old_version }}] ${{ env.update_type }} up"
+          git push
+
+      
+      - name: Add version label
+        if: steps.version-type.outputs.type != 'skip'
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: ${{ env.new_version }}
