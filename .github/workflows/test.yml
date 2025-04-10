@@ -2,7 +2,7 @@ name: Test
 on: [pull_request]
 
 jobs:
-  fake-tests-trio:
+  test:
     runs-on: ubuntu-latest
     steps:
       - name: test_1
