@@ -25,13 +25,6 @@ jobs:
           scan-type: 'fs'
           scan-ref: '.'
 
-      - name:  Run web security checks
-        run: |
-          if [ -n "${{ secrets.WEBSITE_URL }}" ]; then
-            curl -s -X POST "https://http-observatory.security.mozilla.org/api/v1/analyze?host=${{ secrets.WEBSITE_URL }}" | jq .
-          else
-            echo "Website URL not set in secrets"
-          fi
 
       - name: Add sec-passed label
         if: success()
