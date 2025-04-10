@@ -1,0 +1,32 @@
+name: Fake Tests Trio
+on: [pull_request]
+
+jobs:
+  fake-tests-trio:
+    runs-on: ubuntu-latest
+    steps:
+      - name: test_1
+        run: |
+          echo "тест"
+          ls -l
+          echo "тест пройден" 
+          exit 0
+
+      - name: test_2
+        run: |
+          echo "тест"
+          sleep 1
+          echo "тест пройден"
+          exit 0
+      - name: test_3
+        run: |
+          echo "тест"
+          echo "тест пройден"
+          exit 0
+
+      - name: Добавить метки
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          labels: |
+            test-passed
+          github_token: ${{ secrets.GITHUB_TOKEN }}
