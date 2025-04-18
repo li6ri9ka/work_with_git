@@ -28,22 +28,29 @@ jobs:
           docker-compose -f docker-compose.prod.yml pull
           docker-compose -f docker-compose.prod.yml up -d
 
-      - name: Create Release
-        uses: actions/create-release@lates
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: v${{ steps.version.outputs.VERSION }}
-          release_name: Release v${{ steps.version.outputs.VERSION }}
-          body: "Production deployment completed"
-          
-      - name: Add PROD label
-        uses: actions/github-script@lates
-        with:
-          script: |
-            await github.rest.issues.addLabels({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: ${{ github.event.workflow_run.pull_requests[0].number }},
-              labels: ['PROD']
-            })
+          - name: Create Release
+            uses: actions/create-release@v1
+            env:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            with:
+              tag_name: v${{ steps.version.outputs.VERSION }}
+              release_name: Release v${{ steps.version.outputs.VERSION }}
+              body: "Production deployment completed"
+  
+            - name: Add PROD label
+              uses: actions/github-script@v6
+              with:
+                github-token: ${{ secrets.GITHUB_TOKEN }}
+                script: |
+                  const prNumber = context.payload.workflow_run.pull_requests?.[0]?.number;
+                  if (!prNumber) {
+                    core.setFailed('No PR found for the workflow run');
+                    return;
+                  }
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: prNumber,
+                    labels: ['PROD']
+                  });
+
