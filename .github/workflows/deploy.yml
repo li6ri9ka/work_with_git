@@ -12,7 +12,7 @@ jobs:
 
     steps:
       - name: Download artifacts
-        uses: actions/download-artifact@v3
+        uses: actions/download-artifact@latest
         with:
           name: docker-info
 
@@ -28,7 +28,7 @@ jobs:
           docker-compose -f docker-compose.prod.yml up -d
 
       - name: Create Release
-        uses: actions/create-release@v1
+        uses: actions/create-release@lates
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
@@ -37,7 +37,7 @@ jobs:
           body: "Production deployment completed"
           
       - name: Add PROD label
-        uses: actions/github-script@v6
+        uses: actions/github-script@lates
         with:
           script: |
             await github.rest.issues.addLabels({
