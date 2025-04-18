@@ -23,7 +23,7 @@ def version_up(file_path, version_type):
     parts = read_file(file_path)
 
     if not parts:
-        print("не удалось прочитать его содержимое.")
+        print(" прочитать его содержимое.")
         return
 
     try:
