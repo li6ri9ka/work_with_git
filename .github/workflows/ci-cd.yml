@@ -1,9 +1,10 @@
-name: pipeline
+name: "3. CI/CD pipeline"
 
 on:
-  pull_request:
-    types: [closed]
+  workflow_run:
+    workflows: ["2. Test Checks"]
     branches: [master]
+    types: [completed]
 
 env:
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
