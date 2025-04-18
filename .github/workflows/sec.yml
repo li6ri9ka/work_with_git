@@ -1,4 +1,4 @@
-name: Security Checks
+name: "1. Security Checks"
 on:
   pull_request:
     types: [opened, reopened, synchronize]
@@ -6,30 +6,31 @@ on:
 jobs:
   security:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      security-events: write
+
     steps:
-    
-      - name: Checkout repository
+      - name: Checkout code
         uses: actions/checkout@v4
-        
-      - name: Run security scan
-        uses: actions/github-script@v6
         with:
-          script: |
-            console.log('Security scan placeholder')
-    
+          fetch-depth: 0  
+
       - name: Scan for secrets
         uses: gitleaks/gitleaks-action@v2
         with:
           config-path: .github/gitleaks.toml
-
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          
       - name: Check for Docker files
-        id: check_docker
+        id: docker_check
         run: |
-          echo "dockerfile_exists=$( [ -f Dockerfile ] && echo true || echo false )" >> $GITHUB_OUTPUT
-          echo "compose_exists=$( [ -f docker-compose.yml ] && echo true || echo false )" >> $GITHUB_OUTPUT
+          echo "dockerfile-exists=$(test -f Dockerfile && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "compose-exists=$(test -f docker-compose.yml && echo true || echo false)" >> $GITHUB_OUTPUT
 
       - name: Scan Docker for vulnerabilities
-        if: steps.check_docker.outputs.dockerfile_exists == 'true'
+        if: steps.docker_check.outputs.dockerfile-exists == 'true'
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
