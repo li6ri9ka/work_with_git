@@ -29,7 +29,7 @@ def version_up(file_path, version_type):
     try:
         major, minor, patch = map(int, parts)
     except ValueError:
-        print("Файл содержит некорректные данные (ожидались числа, разделённые точками).")
+        print("Файл содержит  данные (ожидались числа, разделённые точками).")
         return
 
 
