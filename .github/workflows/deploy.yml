@@ -41,16 +41,46 @@ jobs:
           release_name: Release v${{ steps.version.outputs.VERSION }}
           body: "Production deployment completed"
 
+      - name: Extract PR metadata
+        id: pr-meta
+        uses: actions/github-script@v6
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: json
+          script: |
+            const runId = context.payload.workflow_run.id;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const { data: run } = await github.rest.actions.getWorkflowRun({
+              owner,
+              repo,
+              run_id: runId
+            });
+
+            const commitSha = run.head_sha;
+
+            const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner,
+              repo,
+              commit_sha: commitSha
+            });
+
+            if (prs.length === 0) {
+              core.setOutput('skip', 'true');
+              return;
+            }
+
+            const pr = prs[0];
+            core.setOutput('pr_number', pr.number);
+
       - name: Add PROD label
+        if: steps.pr-meta.outputs.skip != 'true'
         uses: actions/github-script@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const prNumber = context.payload.workflow_run.pull_requests?.[0]?.number;
-            if (!prNumber) {
-              core.setFailed('No PR found for the workflow run');
-              return;
-            }
+            const prNumber = Number("${{ steps.pr-meta.outputs.pr_number }}");
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
