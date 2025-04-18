@@ -21,7 +21,7 @@ jobs:
           config-path: .github/gitleaks.toml
 
       - name: Scan Docker for vulnerabilities
-        if: exists('Dockerfile')
+        if: ${{ github.workspace && github.workspace != '' && fromJSON('["' + github.workspace + '/docker-compose.yml"]')[0] != '' }}
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
