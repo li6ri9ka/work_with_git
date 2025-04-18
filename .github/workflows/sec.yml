@@ -15,18 +15,26 @@ jobs:
           scan-dir: ./  
           fail-on-found: true 
 
-      - name:  Scan for secrets in code
+      - name: Scan for secrets in code
         uses: gitleaks/gitleaks-action@v2
         with:
           config-path: .github/gitleaks.toml
 
+      - name: Check for docker-compose.yml
+        id: check_docker_compose
+        run: |
+          if [ -f "docker-compose.yml" ]; then
+            echo "docker_compose_exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "docker_compose_exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Scan Docker for vulnerabilities
-        if: ${{ github.workspace && github.workspace != '' && fromJSON('["' + github.workspace + '/docker-compose.yml"]')[0] != '' }}
+        if: steps.check_docker_compose.outputs.docker_compose_exists == 'true'
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
           scan-ref: '.'
-
 
       - name: Add sec-passed label
         if: success()
