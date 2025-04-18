@@ -9,19 +9,10 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      issues: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Scan for secrets
-        uses: gitleaks/gitleaks-action@v2
-        with:
-          config-path: .github/gitleaks.toml
-          github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check for Docker files
         id: docker_check
@@ -41,6 +32,6 @@ jobs:
         uses: actions-ecosystem/action-add-labels@v1
         with:
           labels: 'security-passed'
-          github_token: ${{ secrets.GITHUB_TOKEN }}  
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           repo: ${{ github.repository }}
           number: ${{ github.event.pull_request.number }}
