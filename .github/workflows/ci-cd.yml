@@ -3,7 +3,7 @@ name: pipeline
 on:
   pull_request:
     types: [closed]
-    branches: [main]
+    branches: [master]
 
 env:
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
