@@ -2,8 +2,7 @@ name: Deploy to Production
 
 on:
   workflow_run:
-    workflows: ["CI/CD pipeline"]
-    branches: [master]
+    workflows: ["3. CI/CD pipeline"]
     types: [completed]
 
 jobs:
