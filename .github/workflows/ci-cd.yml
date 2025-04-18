@@ -156,18 +156,23 @@ jobs:
 
       - name: Add PR labels
         uses: actions/github-script@v6
+        env:
+          PR_NUMBER: ${{ steps.pr-meta.outputs.number }}
+          VERSION: ${{ steps.new-ver.outputs.VERSION }}
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const prNumber = ${{ steps.pr-meta.outputs.number }};
+            const prNumber = process.env.PR_NUMBER;
+            const version = process.env.VERSION;
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: prNumber,
               labels: [
-                'version:${{ steps.new-ver.outputs.VERSION }}',
+                `version:${version}`,
                 'changelog',
                 'dockerhub'
               ]
             });
+
 
