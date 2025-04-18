@@ -1,5 +1,9 @@
-name: Test
-on: [pull_request]
+name: "2. Test Checks"
+on: 
+  workflow_run:
+    workflows: ["1. Security Checks"]
+    branches: [master]
+    types: [completed]
 
 jobs:
   test:
