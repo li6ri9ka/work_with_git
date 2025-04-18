@@ -9,7 +9,7 @@ def read_file(file_path):
         print(f"Файл {file_path} не найден.")
         return []
     except Exception as e:
-        print(f"Произошла ошибка при чтении файла: {e}")
+        print(f"Произошла  при чтении файла: {e}")
         return []
 
 def write_file(file_path, data):
