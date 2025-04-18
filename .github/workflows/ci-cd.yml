@@ -1,69 +1,93 @@
-name: Bump Version
+name: Version Update
+
 on:
   pull_request:
     types: [closed]
+    branches:
+      - master
 
 jobs:
-  version-bump:
+  update-version:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          fetch-depth: 0  
 
-      
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get PR labels
+        id: pr-labels
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const pr = await github.rest.pulls.get({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              pull_number: ${{ github.event.pull_request.number }},
+            });
+            return pr.data.labels.map(label => label.name);
+
       - name: Determine version bump type
-        id: version-type
+        id: version-bump
         run: |
-          if [[ "${{ github.event.pull_request.title }}" == *"feature"* ]]; then
-            echo "type=minor" >> $GITHUB_OUTPUT
-            echo "update_type=minor" >> $GITHUB_ENV
-          elif [[ "${{ github.event.pull_request.title }}" == *"hotfix"* ]]; then
-            echo "type=patch" >> $GITHUB_OUTPUT
-            echo "update_type=patch" >> $GITHUB_ENV
+          if [[ "${{ steps.pr-labels.outputs.result }}" == *"feature"* ]]; then
+            echo "BUMP_TYPE=minor" >> $GITHUB_OUTPUT
+          elif [[ "${{ steps.pr-labels.outputs.result }}" == *"hotfix"* ]]; then
+            echo "BUMP_TYPE=patch" >> $GITHUB_OUTPUT
           else
-            echo "type=skip" >> $GITHUB_OUTPUT
-            echo "Skipping version update - no feature/hotfix in PR title" >&2
+            echo "No version bump needed"
             exit 0
           fi
 
-     
-      - name: Update version
-        if: steps.version-type.outputs.type != 'skip'
-        id: bump-version
+      - name: Read current version
+        id: current-version
         run: |
-          # Читаем текущую версию
-          old_version=$(cat version)
-          echo "old_version=$old_version" >> $GITHUB_ENV
-
-          # Генерируем новую версию
-          IFS='.' read -r major minor patch <<< "$old_version"
-          
-          if [ "${{ env.update_type }}" = "minor" ]; then
-            new_version="$major.$((minor + 1)).0"
+          if [ -f "version" ]; then
+            CURRENT_VERSION=$(cat version)
           else
-            new_version="$major.$minor.$((patch + 1))"
+            CURRENT_VERSION="0.0.0"
+          fi
+          echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Calculate new version
+        id: new-version
+        run: |
+          IFS='.' read -ra VERSION <<< "${{ steps.current-version.outputs.CURRENT_VERSION }}"
+          MAJOR=${VERSION[0]}
+          MINOR=${VERSION[1]}
+          PATCH=${VERSION[2]}
+
+          if [ "${{ steps.version-bump.outputs.BUMP_TYPE }}" == "minor" ]; then
+            NEW_MINOR=$((MINOR + 1))
+            NEW_VERSION="$MAJOR.$NEW_MINOR.0"
+          elif [ "${{ steps.version-bump.outputs.BUMP_TYPE }}" == "patch" ]; then
+            NEW_PATCH=$((PATCH + 1))
+            NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
           fi
 
-          echo "$new_version" > version
-          echo "new_version=$new_version" >> $GITHUB_ENV
-          echo "version=$new_version" >> $GITHUB_OUTPUT
+          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
 
-      
-      - name: Commit version update
-        if: steps.version-type.outputs.type != 'skip'
+      - name: Update version file
         run: |
-          git config user.name "GitHub Actions"
-          git config user.email "actions@github.com"
-          git add version
-          git commit -m "[${{ env.new_version }}] < [${{ env.old_version }}] ${{ env.update_type }} up"
-          git push
+          echo "${{ steps.new-version.outputs.NEW_VERSION }}" > version
 
-      
-      - name: Add version label
-        if: steps.version-type.outputs.type != 'skip'
-        uses: actions-ecosystem/action-add-labels@v1
+      - name: Commit version update
+        run: |
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git add version
+          git commit -m "[${{ steps.new-version.outputs.NEW_VERSION }}] <.[${{ steps.current-version.outputs.CURRENT_VERSION }}] ${{ steps.version-bump.outputs.BUMP_TYPE }} up"
+          git push origin HEAD:main
+
+      - name: Add version label to PR
+        uses: actions/github-script@v6
         with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          labels: ${{ env.new_version }}
+          script: |
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ github.event.pull_request.number }},
+              labels: ['${{ steps.new-version.outputs.NEW_VERSION }}']
+            });
