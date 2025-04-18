@@ -1,5 +1,7 @@
-name: Security Checks
-on: [pull_request]
+name: "1. Security Checks"
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
 
 jobs:
   security:
