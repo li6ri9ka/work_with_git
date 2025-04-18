@@ -62,4 +62,4 @@ if len(sys.argv) > 1:
     bump_type = sys.argv[1]
     version_up(file_path, bump_type)
 else:
-    print("Не указан тип обновления версии.")
+    print(" тип обновления версии.")
