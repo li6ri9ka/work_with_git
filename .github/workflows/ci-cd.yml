@@ -32,27 +32,30 @@ jobs:
             const runId = context.payload.workflow_run.id;
             const owner = context.repo.owner;
             const repo = context.repo.repo;
-
+      
             const { data: run } = await github.rest.actions.getWorkflowRun({
               owner,
               repo,
               run_id: runId
             });
-
+      
             const commitSha = run.head_sha;
-
+      
             const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
               owner,
               repo,
               commit_sha: commitSha
             });
-
+      
             if (prs.length === 0) {
-              throw new Error("No PR found for commit: " + commitSha);
+              core.setOutput('skip', 'true');
+              return null;
             }
-
+      
             const pr = prs[0];
-
+      
+            core.setOutput('skip', 'false');
+      
             return {
               labels: pr.labels.map(label => label.name),
               branch: pr.head.ref,
@@ -60,7 +63,7 @@ jobs:
               number: pr.number,
               html_url: pr.html_url
             };
-
+            
       - name: Determine update type
         id: update-type
         run: |
