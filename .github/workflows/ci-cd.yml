@@ -1,13 +1,13 @@
-name: Version Update
+name: Version and Changelog Update
 
 on:
   pull_request:
     types: [closed]
     branches:
-      - master
+      - main
 
 jobs:
-  update-version:
+  version-changelog:
     if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
@@ -17,8 +17,8 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Get PR labels
-        id: pr-labels
+      - name: Extract PR metadata
+        id: pr-meta
         uses: actions/github-script@v6
         with:
           script: |
@@ -27,61 +27,79 @@ jobs:
               repo: context.repo.repo,
               pull_number: ${{ github.event.pull_request.number }},
             });
-            return pr.data.labels.map(label => label.name);
+            return {
+              labels: pr.data.labels.map(label => label.name),
+              branch: pr.data.head.ref,
+              title: pr.data.title,
+              number: pr.data.number
+            };
 
-      - name: Determine version bump type
-        id: version-bump
+      - name: Determine update type
+        id: update-type
         run: |
-          if [[ "${{ steps.pr-labels.outputs.result }}" == *"feature"* ]]; then
-            echo "BUMP_TYPE=minor" >> $GITHUB_OUTPUT
-          elif [[ "${{ steps.pr-labels.outputs.result }}" == *"hotfix"* ]]; then
-            echo "BUMP_TYPE=patch" >> $GITHUB_OUTPUT
+          if [[ "${{ steps.pr-meta.outputs.labels }}" == *"feature"* ]]; then
+            echo "TYPE=minor" >> $GITHUB_OUTPUT
+            echo "LOG_TYPE=Feature" >> $GITHUB_OUTPUT
+          elif [[ "${{ steps.pr-meta.outputs.labels }}" == *"hotfix"* ]]; then
+            echo "TYPE=patch" >> $GITHUB_OUTPUT
+            echo "LOG_TYPE=Hotfix" >> $GITHUB_OUTPUT
           else
-            echo "No version bump needed"
+            echo "No version update needed"
             exit 0
           fi
 
-      - name: Read current version
-        id: current-version
+      - name: Get current version
+        id: current-ver
         run: |
           if [ -f "version" ]; then
-            CURRENT_VERSION=$(cat version)
+            echo "VERSION=$(cat version)" >> $GITHUB_OUTPUT
           else
-            CURRENT_VERSION="0.0.0"
+            echo "VERSION=0.0.0" >> $GITHUB_OUTPUT
           fi
-          echo "CURRENT_VERSION=$CURRENT_VERSION" >> $GITHUB_OUTPUT
 
       - name: Calculate new version
-        id: new-version
+        id: new-ver
         run: |
-          IFS='.' read -ra VERSION <<< "${{ steps.current-version.outputs.CURRENT_VERSION }}"
-          MAJOR=${VERSION[0]}
-          MINOR=${VERSION[1]}
-          PATCH=${VERSION[2]}
+          IFS='.' read -ra PARTS <<< "${{ steps.current-ver.outputs.VERSION }}"
+          MAJOR=${PARTS[0]}
+          MINOR=${PARTS[1]}
+          PATCH=${PARTS[2]}
 
-          if [ "${{ steps.version-bump.outputs.BUMP_TYPE }}" == "minor" ]; then
-            NEW_MINOR=$((MINOR + 1))
-            NEW_VERSION="$MAJOR.$NEW_MINOR.0"
-          elif [ "${{ steps.version-bump.outputs.BUMP_TYPE }}" == "patch" ]; then
-            NEW_PATCH=$((PATCH + 1))
-            NEW_VERSION="$MAJOR.$MINOR.$NEW_PATCH"
+          if [ "${{ steps.update-type.outputs.TYPE }}" == "minor" ]; then
+            NEW_VERSION="$MAJOR.$((MINOR + 1)).0"
+          else
+            NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
           fi
 
-          echo "NEW_VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
+          echo "OLD_VERSION=${{ steps.current-ver.outputs.VERSION }}" >> $GITHUB_OUTPUT
 
       - name: Update version file
-        run: |
-          echo "${{ steps.new-version.outputs.NEW_VERSION }}" > version
+        run: echo "${{ steps.new-ver.outputs.VERSION }}" > version
 
-      - name: Commit version update
+      - name: Update changelog
+        run: |
+          # Создаем файл если не существует
+          if [ ! -f "changelog.md" ]; then
+            echo "# Changelog\n" > changelog.md
+          fi
+
+          TIMESTAMP=$(date +"%Y-%m-%d")
+          ENTRY="## ${{ steps.new-ver.outputs.VERSION }} ($TIMESTAMP)\n"
+          ENTRY+="- **${{ steps.update-type.outputs.LOG_TYPE }}**: ${{ steps.pr-meta.outputs.title }} "
+          ENTRY+="(PR #${{ steps.pr-meta.outputs.number }}, branch: ${{ steps.pr-meta.outputs.branch }})\n"
+
+          echo -e "$ENTRY\n$(cat changelog.md)" > changelog.md
+
+      - name: Commit changes
         run: |
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
-          git add version
-          git commit -m "[${{ steps.new-version.outputs.NEW_VERSION }}] <.[${{ steps.current-version.outputs.CURRENT_VERSION }}] ${{ steps.version-bump.outputs.BUMP_TYPE }} up"
+          git add version changelog.md
+          git commit -m "[${{ steps.new-ver.outputs.VERSION }}] <.[${{ steps.current-ver.outputs.VERSION }}] ${{ steps.update-type.outputs.TYPE }} up"
           git push origin HEAD:main
 
-      - name: Add version label to PR
+      - name: Add PR labels
         uses: actions/github-script@v6
         with:
           script: |
@@ -89,5 +107,14 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               issue_number: ${{ github.event.pull_request.number }},
-              labels: ['${{ steps.new-version.outputs.NEW_VERSION }}']
+              labels: [
+                '${{ steps.new-ver.outputs.VERSION }}',
+                'changelog'
+              ]
             });
+
+      - name: Archive changelog
+        uses: actions/upload-artifact@v3
+        with:
+          name: changelog-${{ steps.new-ver.outputs.VERSION }}
+          path: changelog.md
