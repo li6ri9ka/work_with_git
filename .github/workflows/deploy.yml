@@ -11,6 +11,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout master branch
+        uses: actions/checkout@v4
+        with:
+          ref: master
+
       - name: Get version
         id: version
         run: echo "VERSION=$(cat version)" >> $GITHUB_OUTPUT
@@ -23,9 +28,9 @@ jobs:
       
       - name: Deploy
         run: |
-          docker compose -f ../docker-compose.yml down
-          docker compose -f ../docker-compose.yml pull
-          docker compose -f ../docker-compose.yml up -d
+          docker compose -f ./docker-compose.yml down
+          docker compose -f ./docker-compose.yml pull
+          docker compose -f ./docker-compose.yml up -d
 
       - name: Create Release
         uses: actions/create-release@v1
@@ -35,6 +40,7 @@ jobs:
           tag_name: v${{ steps.version.outputs.VERSION }}
           release_name: Release v${{ steps.version.outputs.VERSION }}
           body: "Production deployment completed"
+
       - name: Add PROD label
         uses: actions/github-script@v6
         with:
@@ -51,4 +57,3 @@ jobs:
               issue_number: prNumber,
               labels: ['PROD']
             });
-
