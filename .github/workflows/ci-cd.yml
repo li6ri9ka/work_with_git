@@ -8,13 +8,12 @@ on:
 env:
   DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
   DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-  PROJECT_NAME: "work_with_git"
+  PROJECT_NAME: "work_with_git"  
   TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
   TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
 
 jobs:
   build-and-deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -27,8 +26,33 @@ jobs:
         id: pr-meta
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: json
           script: |
-            const pr = context.payload.workflow_run.pull_requests[0];
+            const runId = context.payload.workflow_run.id;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+
+            const { data: run } = await github.rest.actions.getWorkflowRun({
+              owner,
+              repo,
+              run_id: runId
+            });
+
+            const commitSha = run.head_sha;
+
+            const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner,
+              repo,
+              commit_sha: commitSha
+            });
+
+            if (prs.length === 0) {
+              throw new Error("No PR found for commit: " + commitSha);
+            }
+
+            const pr = prs[0];
+
             return {
               labels: pr.labels.map(label => label.name),
               branch: pr.head.ref,
@@ -67,11 +91,13 @@ jobs:
           MAJOR=${PARTS[0]}
           MINOR=${PARTS[1]}
           PATCH=${PARTS[2]}
+
           if [ "${{ steps.update-type.outputs.TYPE }}" == "minor" ]; then
             NEW_VERSION="$MAJOR.$((MINOR + 1)).0"
           else
             NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
           fi
+
           echo "VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "OLD_VERSION=${{ steps.current-ver.outputs.VERSION }}" >> $GITHUB_OUTPUT
 
@@ -82,11 +108,14 @@ jobs:
         run: |
           if [ ! -f "changelog.md" ]; then
             echo "# Changelog" > changelog.md
+            echo "" >> changelog.md
           fi
+
           TIMESTAMP=$(date +"%Y-%m-%d")
           ENTRY="## ${{ steps.new-ver.outputs.VERSION }} ($TIMESTAMP)\n"
           ENTRY+="- **${{ steps.update-type.outputs.LOG_TYPE }}**: ${{ steps.pr-meta.outputs.title }} "
           ENTRY+="(PR #${{ steps.pr-meta.outputs.number }}, branch: ${{ steps.pr-meta.outputs.branch }})\n"
+
           echo -e "$ENTRY\n$(cat changelog.md)" > changelog.md
 
       - name: Login to Docker Hub
@@ -106,7 +135,7 @@ jobs:
           Type: ${{ steps.update-type.outputs.LOG_TYPE }}
           PR: [#${{ steps.pr-meta.outputs.number }}](${{ steps.pr-meta.outputs.html_url }})
           Branch: \`${{ steps.pr-meta.outputs.branch }}\`
-
+          
           *Changelog:*
           \`\`\`
           $CHANGELOG_ENTRY
@@ -130,17 +159,15 @@ jobs:
       - name: Add PR labels
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
-            const pr = context.payload.workflow_run.pull_requests[0];
-            if (pr) {
-              await github.rest.issues.addLabels({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                issue_number: pr.number,
-                labels: [
-                  'version:${{ steps.new-ver.outputs.VERSION }}',
-                  'changelog',
-                  'dockerhub'
-                ]
-              });
-            }
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: ${{ steps.pr-meta.outputs.number }},
+              labels: [
+                'version:${{ steps.new-ver.outputs.VERSION }}',
+                'changelog',
+                'dockerhub'
+              ]
+            });
