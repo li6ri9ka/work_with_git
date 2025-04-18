@@ -1,4 +1,4 @@
-name: "Security Checks"
+name: "1. Security Checks"
 on:
   pull_request:
     types: [opened, reopened, synchronize]
