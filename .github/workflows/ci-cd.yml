@@ -155,6 +155,7 @@ jobs:
           git push origin HEAD:master
 
       - name: Add PR labels
+        if: steps.pr-meta.outputs.skip != 'true'
         uses: actions/github-script@v6
         env:
           PR_NUMBER: ${{ steps.pr-meta.outputs.number }}
@@ -164,15 +165,21 @@ jobs:
           script: |
             const prNumber = process.env.PR_NUMBER;
             const version = process.env.VERSION;
+      
+            if (!prNumber) {
+              throw new Error("PR number is missing — cannot label.");
+            }
+      
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: prNumber,
+              issue_number: Number(prNumber),
               labels: [
                 `version:${version}`,
                 'changelog',
                 'dockerhub'
               ]
             });
+
 
 
