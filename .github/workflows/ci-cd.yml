@@ -3,7 +3,6 @@ name: "3. CI/CD pipeline"
 on:
   workflow_run:
     workflows: ["2. Test Checks"]
-    branches: [master]
     types: [completed]
 
 env:
