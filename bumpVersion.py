@@ -43,7 +43,7 @@ def version_up(file_path, version_type):
     elif version_type == 'patch':
         patch += 1
     else:
-        print("Некорректный тип версии. Используйте 'major', 'minor' или 'patch'.")
+        print(" тип версии. Используйте 'major', 'minor' или 'patch'.")
         return
 
 
