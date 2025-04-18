@@ -159,13 +159,15 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const prNumber = ${{ steps.pr-meta.outputs.number }};
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: ${{ steps.pr-meta.outputs.number }},
+              issue_number: prNumber,
               labels: [
                 'version:${{ steps.new-ver.outputs.VERSION }}',
                 'changelog',
                 'dockerhub'
               ]
             });
+
