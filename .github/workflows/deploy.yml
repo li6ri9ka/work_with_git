@@ -23,9 +23,9 @@ jobs:
       
       - name: Deploy
         run: |
-          docker compose -f work_with_git/docker-compose.yml down
-          docker compose -f work_with_git/docker-compose.yml pull
-          docker compose -f work_with_git/docker-compose.yml up -d
+          docker compose -f ../docker-compose.yml down
+          docker compose -f ../docker-compose.yml pull
+          docker compose -f ../docker-compose.yml up -d
 
       - name: Create Release
         uses: actions/create-release@v1
