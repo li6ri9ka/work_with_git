@@ -17,7 +17,7 @@ def write_file(file_path, data):
         with open(file_path, 'w', encoding='utf-8') as file:
             file.write(data)
     except Exception as e:
-        print(f"Произошла ошибка при записи в файл: {e}")
+        print(f"Произошла  при записи в файл: {e}")
 
 def version_up(file_path, version_type):
     parts = read_file(file_path)
