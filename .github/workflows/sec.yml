@@ -7,30 +7,28 @@ jobs:
   security:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-
+      - uses: actions/checkout@v4
       - name: Run Antivirus Scan
-        uses: trufflesecurity/clamav-action@v1
+        uses: trufflesecurity/clamav-action@v2
         with:
-          scan-dir: ./  
-          fail-on-found: true 
+          scan-dir: ./
+          fail-on-found: true
 
       - name: Scan for secrets in code
         uses: gitleaks/gitleaks-action@v2
         with:
           config-path: .github/gitleaks.toml
 
+     
       - name: Check for docker-compose.yml
-        id: check_docker_compose
+        id: check_files
         run: |
           if [ -f "docker-compose.yml" ]; then
-            echo "docker_compose_exists=true" >> $GITHUB_OUTPUT
-          else
-            echo "docker_compose_exists=false" >> $GITHUB_OUTPUT
+            echo "docker_exists=true" >> $GITHUB_OUTPUT
           fi
 
       - name: Scan Docker for vulnerabilities
-        if: steps.check_docker_compose.outputs.docker_compose_exists == 'true'
+        if: steps.check_files.outputs.docker_exists == 'true'
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
