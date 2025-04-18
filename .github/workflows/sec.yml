@@ -1,4 +1,4 @@
-name: "1. Security Checks"
+name: "Security Checks"
 on:
   pull_request:
     types: [opened, reopened, synchronize]
@@ -9,18 +9,16 @@ jobs:
     permissions:
       contents: read
       pull-requests: write
-      security-events: write
+      issues: write
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  
+          fetch-depth: 0
 
       - name: Scan for secrets
         uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           config-path: .github/gitleaks.toml
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -43,4 +41,6 @@ jobs:
         uses: actions-ecosystem/action-add-labels@v1
         with:
           labels: 'security-passed'
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}  
+          repo: ${{ github.repository }}
+          number: ${{ github.event.pull_request.number }}
