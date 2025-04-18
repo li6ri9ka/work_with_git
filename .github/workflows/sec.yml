@@ -1,0 +1,36 @@
+name: "1. Security Checks"
+on:
+  pull_request:
+    types: [opened, reopened, synchronize]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run Antivirus Scan
+        uses: trufflesecurity/clamav-action@v1
+        with:
+          scan-dir: ./  
+          fail-on-found: true 
+
+      - name:  Scan for secrets in code
+        uses: gitleaks/gitleaks-action@v2
+        with:
+          config-path: .github/gitleaks.toml
+
+      - name: Scan Docker for vulnerabilities
+        if: exists('Dockerfile')
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+
+
+      - name: Add sec-passed label
+        if: success()
+        uses: actions-ecosystem/action-add-labels@v1
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          labels: sec-passed
