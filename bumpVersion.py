@@ -49,7 +49,7 @@ def version_up(file_path, version_type):
 
     new_version = f"{major}.{minor}.{patch}"
     write_file(file_path, new_version)
-    print(f"Версия  обновлена: {new_version}")
+    print(f"Версия  : {new_version}")
 
 def check_file(file_path):
     if not os.path.isfile(file_path):
