@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: landev-v1
+  labels:
+    app: landev
+    version: v1.0
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: landev
+      version: v1.0
+  template:
+    metadata:
+      labels:
+        app: landev
+        version: v1.0
+    spec:
+      containers:
+      - name: landev-container
+        image: li6ri9ka/work_with_git:v0.0.17
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "200m"
+        ports:
+        - containerPort: 80
+
+

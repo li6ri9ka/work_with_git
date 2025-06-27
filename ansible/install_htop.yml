@@ -1,0 +1,13 @@
+- name: Install htop
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update apt cache
+      ansible.builtin.apt:
+        update_cache: yes
+      when: ansible_os_family == 'Debian'
+    
+    - name: Install htop
+      ansible.builtin.package:
+        name: htop
+        state: present

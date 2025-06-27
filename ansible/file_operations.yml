@@ -1,0 +1,20 @@
+- name: File operations
+  hosts: all
+  tasks:
+    - name: Create test file
+      ansible.builtin.file:
+        path: /tmp/ansible_test.txt
+        state: touch
+        mode: '0644'
+    
+    - name: Add content to file
+      ansible.builtin.copy:
+        dest: /tmp/ansible_test.txt
+        content: |
+          This file was created by Ansible
+          Current date: {{ ansible_date_time.date }}
+    
+    # - name: Remove test file
+    #   ansible.builtin.file:
+    #     path: /tmp/ansible_test.txt
+    #     state: absent

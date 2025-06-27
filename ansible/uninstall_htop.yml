@@ -1,0 +1,8 @@
+- name: Uninstall htop
+  hosts: all
+  become: yes
+  tasks:
+    - name: Remove htop
+      ansible.builtin.package:
+        name: htop
+        state: absent

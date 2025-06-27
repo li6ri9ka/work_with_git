@@ -1,0 +1,20 @@
+- name: Gather system information
+  hosts: all
+  tasks:
+    - name: Get IP address
+      ansible.builtin.shell: ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}'
+      register: ip_address
+    
+    - name: Get memory usage
+      ansible.builtin.shell: free -h
+      register: memory
+    
+    - name: Display formatted info
+      ansible.builtin.debug:
+        msg: |
+          ===== System Info =====
+          Host: {{ inventory_hostname }}
+          IP: {{ ip_address.stdout }}
+          Memory:
+          {{ memory.stdout }}
+          =====================
