@@ -3,7 +3,6 @@ name: "3. CI/CD pipeline"
 on:
   workflow_run:
     workflows: ["2. Test Checks"]
-    branches: [master]
     types: [completed]
 
 env:
@@ -15,7 +14,6 @@ env:
 
 jobs:
   build-and-deploy:
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
 
     steps:
@@ -28,20 +26,44 @@ jobs:
         id: pr-meta
         uses: actions/github-script@v6
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          result-encoding: json
           script: |
-            const pr = await github.rest.pulls.get({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              pull_number: ${{ github.event.pull_request.number }},
+            const runId = context.payload.workflow_run.id;
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+      
+            const { data: run } = await github.rest.actions.getWorkflowRun({
+              owner,
+              repo,
+              run_id: runId
             });
+      
+            const commitSha = run.head_sha;
+      
+            const { data: prs } = await github.rest.repos.listPullRequestsAssociatedWithCommit({
+              owner,
+              repo,
+              commit_sha: commitSha
+            });
+      
+            if (prs.length === 0) {
+              core.setOutput('skip', 'true');
+              return null;
+            }
+      
+            const pr = prs[0];
+      
+            core.setOutput('skip', 'false');
+      
             return {
-              labels: pr.data.labels.map(label => label.name),
-              branch: pr.data.head.ref,
-              title: pr.data.title,
-              number: pr.data.number,
-              html_url: pr.data.html_url
+              labels: pr.labels.map(label => label.name),
+              branch: pr.head.ref,
+              title: pr.title,
+              number: pr.number,
+              html_url: pr.html_url
             };
-
+            
       - name: Determine update type
         id: update-type
         run: |
@@ -55,7 +77,6 @@ jobs:
             echo "No version update needed"
             exit 0
           fi
-
 
       - name: Get current version
         id: current-ver
@@ -73,19 +94,16 @@ jobs:
           MAJOR=${PARTS[0]}
           MINOR=${PARTS[1]}
           PATCH=${PARTS[2]}
-
           if [ "${{ steps.update-type.outputs.TYPE }}" == "minor" ]; then
             NEW_VERSION="$MAJOR.$((MINOR + 1)).0"
           else
             NEW_VERSION="$MAJOR.$MINOR.$((PATCH + 1))"
           fi
-
           echo "VERSION=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "OLD_VERSION=${{ steps.current-ver.outputs.VERSION }}" >> $GITHUB_OUTPUT
 
       - name: Update version file
         run: echo "${{ steps.new-ver.outputs.VERSION }}" > version
-
 
       - name: Update changelog
         run: |
@@ -93,12 +111,10 @@ jobs:
             echo "# Changelog" > changelog.md
             echo "" >> changelog.md
           fi
-
           TIMESTAMP=$(date +"%Y-%m-%d")
           ENTRY="## ${{ steps.new-ver.outputs.VERSION }} ($TIMESTAMP)\n"
           ENTRY+="- **${{ steps.update-type.outputs.LOG_TYPE }}**: ${{ steps.pr-meta.outputs.title }} "
           ENTRY+="(PR #${{ steps.pr-meta.outputs.number }}, branch: ${{ steps.pr-meta.outputs.branch }})\n"
-
           echo -e "$ENTRY\n$(cat changelog.md)" > changelog.md
 
       - name: Login to Docker Hub
@@ -110,7 +126,6 @@ jobs:
           docker tag $DOCKERHUB_USERNAME/$PROJECT_NAME:${{ steps.new-ver.outputs.VERSION }} $DOCKERHUB_USERNAME/$PROJECT_NAME:latest
           docker push $DOCKERHUB_USERNAME/$PROJECT_NAME:${{ steps.new-ver.outputs.VERSION }}
           docker push $DOCKERHUB_USERNAME/$PROJECT_NAME:latest
-
 
       - name: Send Telegram notification
         run: |
@@ -125,7 +140,6 @@ jobs:
           $CHANGELOG_ENTRY
           \`\`\`
           Docker image: \`$DOCKERHUB_USERNAME/$PROJECT_NAME:${{ steps.new-ver.outputs.VERSION }}\`"
-
           curl -s -X POST \
             "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
             -d chat_id="$TELEGRAM_CHAT_ID" \
@@ -138,20 +152,34 @@ jobs:
           git config --global user.email "actions@github.com"
           git add version changelog.md
           git commit -m "[${{ steps.new-ver.outputs.VERSION }}] Version bump"
-          git push origin HEAD:main
-
+          git push origin HEAD:master
 
       - name: Add PR labels
+        if: steps.pr-meta.outputs.skip != 'true'
         uses: actions/github-script@v6
+        env:
+          PR_NUMBER: ${{ steps.pr-meta.outputs.number }}
+          VERSION: ${{ steps.new-ver.outputs.VERSION }}
         with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
+            const prNumber = process.env.PR_NUMBER;
+            const version = process.env.VERSION;
+      
+            if (!prNumber) {
+              throw new Error("PR number is missing — cannot label.");
+            }
+      
             await github.rest.issues.addLabels({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              issue_number: ${{ github.event.pull_request.number }},
+              issue_number: Number(prNumber),
               labels: [
-                'version:${{ steps.new-ver.outputs.VERSION }}',
+                `version:${version}`,
                 'changelog',
                 'dockerhub'
               ]
             });
+
+
+

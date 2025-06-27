@@ -1,36 +1,44 @@
 name: "2. Test Checks"
+
 on: 
   workflow_run:
     workflows: ["1. Security Checks"]
-    branches: [master]
     types: [completed]
 
 jobs:
   test:
     runs-on: ubuntu-latest
+
     steps:
       - name: test_1
         run: |
           echo "тест"
           ls -l
-          echo "тест пройден" 
-          exit 0
+          echo "тест пройден"
 
       - name: test_2
         run: |
           echo "тест"
           sleep 1
           echo "тест пройден"
-          exit 0
+
       - name: test_3
         run: |
           echo "тест"
           echo "тест пройден"
-          exit 0
 
-      - name: Добавить метки
-        uses: actions-ecosystem/action-add-labels@v1
+      - name: Add label
+        uses: actions/github-script@v6
         with:
-          labels: |
-            test-passed
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const pr = context.payload.workflow_run.pull_requests[0];
+            if (pr) {
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                labels: ['test-passed']
+              });
+            } else {
+              console.log('PR not found in workflow_run context.');
+            }

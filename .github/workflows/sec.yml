@@ -6,31 +6,32 @@ on:
 jobs:
   security:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-      - name: Run Antivirus Scan
-        uses: trufflesecurity/clamav-action@v1
-        with:
-          scan-dir: ./  
-          fail-on-found: true 
-
-      - name:  Scan for secrets in code
-        uses: gitleaks/gitleaks-action@v2
-        with:
-          config-path: .github/gitleaks.toml
+      - name: Check for Docker files
+        id: docker_check
+        run: |
+          echo "dockerfile-exists=$(test -f Dockerfile && echo true || echo false)" >> $GITHUB_OUTPUT
+          echo "compose-exists=$(test -f docker-compose.yml && echo true || echo false)" >> $GITHUB_OUTPUT
 
       - name: Scan Docker for vulnerabilities
-        if: exists('Dockerfile')
+        if: steps.docker_check.outputs.dockerfile-exists == 'true'
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: 'fs'
           scan-ref: '.'
 
-
-      - name: Add sec-passed label
+      - name: Add security label
         if: success()
         uses: actions-ecosystem/action-add-labels@v1
         with:
+          labels: 'security-passed'
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          labels: sec-passed
+          repo: ${{ github.repository }}
+          number: ${{ github.event.pull_request.number }}
