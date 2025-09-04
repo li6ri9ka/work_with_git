@@ -17,19 +17,19 @@ def write_file(file_path, data):
         with open(file_path, 'w', encoding='utf-8') as file:
             file.write(data)
     except Exception as e:
-        print(f"Произошла ошибка при записи в файл: {e}")
+        print(f"Произошла  при записи в файл: {e}")
 
 def version_up(file_path, version_type):
     parts = read_file(file_path)
 
     if not parts:
-        print("не удалось прочитать его содержимое.")
+        print(" прочитать его содержимое.")
         return
 
     try:
         major, minor, patch = map(int, parts)
     except ValueError:
-        print("Файл содержит некорректные данные (ожидались числа, разделённые точками).")
+        print("Файл содержит  данные (ожидались числа, разделённые точками).")
         return
 
 
@@ -43,13 +43,13 @@ def version_up(file_path, version_type):
     elif version_type == 'patch':
         patch += 1
     else:
-        print("Некорректный тип версии. Используйте 'major', 'minor' или 'patch'.")
+        print(" тип .  '', 'minor' или 'patch'.")
         return
 
 
     new_version = f"{major}.{minor}.{patch}"
     write_file(file_path, new_version)
-    print(f"Версия успешно обновлена: {new_version}")
+    print(f"Версия  : {new_version}")
 
 def check_file(file_path):
     if not os.path.isfile(file_path):
@@ -62,4 +62,4 @@ if len(sys.argv) > 1:
     bump_type = sys.argv[1]
     version_up(file_path, bump_type)
 else:
-    print("Не указан тип обновления версии.")
+    print(" тип  .")
